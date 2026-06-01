@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>To-Do List</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .container {
+      background: #ffffff;
+      border-radius: 24px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+      width: 100%;
+      max-width: 480px;
+      padding: 32px 28px;
+      transition: 0.3s;
+    }
+    h1 {
+      font-size: 28px;
+      font-weight: 700;
+      color: #1a1a2e;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    h1 span {
+      background: #667eea;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 2px 12px;
+      border-radius: 40px;
+      margin-left: auto;
+    }
+    .subtitle {
+      color: #6b7280;
+      font-size: 14px;
+      margin-bottom: 24px;
+      border-left: 3px solid #667eea;
+      padding-left: 12px;
+    }
+    .input-area {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+    .input-area input {
+      flex: 1;
+      padding: 12px 16px;
+      border: 2px solid #e5e7eb;
+      border-radius: 12px;
+      font-size: 15px;
+      outline: none;
+      transition: 0.2s;
+    }
+    .input-area input:focus {
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+    }
+    .input-area button {
+      background: #667eea;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 12px 20px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.2s;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .input-area button:hover {
+      background: #5a6fd6;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+    .input-area button:active {
+      transform: scale(0.97);
+    }
+    .filter-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .filter-bar button {
+      flex: 1;
+      min-width: 70px;
+      padding: 8px 0;
+      border: 2px solid #e5e7eb;
+      border-radius: 40px;
+      background: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      color: #6b7280;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .filter-bar button.active {
+      background: #667eea;
+      border-color: #667eea;
+      color: #fff;
+    }
+    .filter-bar button:hover:not(.active) {
+      border-color: #667eea;
+      color: #667eea;
+    }
+    .task-stats {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      color: #9ca3af;
+      margin-bottom: 12px;
+      padding: 0 4px;
+    }
+    .task-stats span strong {
+      color: #1f2937;
+    }
+    .task-list {
+      list-style: none;
+      max-height: 380px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .task-list::-webkit-scrollbar {
+      width: 6px;
+    }
+    .task-list::-webkit-scrollbar-track {
+      background: #f3f4f6;
+      border-radius: 20px;
+    }
+    .task-list::-webkit-scrollbar-thumb {
+      background: #c4b5fd;
+      border-radius: 20px;
+    }
+    .task-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: #f9fafb;
+      margin-bottom: 8px;
+      transition: 0.2s;
+      border: 1px solid transparent;
+    }
+    .task-item:hover {
+      background: #f3f4f6;
+      border-color: #e5e7eb;
+    }
+    .task-item.completed .task-text {
+      text-decoration: line-through;
+      color: #9ca3af;
+    }
+    .task-item .checkbox {
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      border: 2px solid #d1d5db;
+      background: #fff;
+      flex-shrink: 0;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: 0.2s;
+      font-size: 14px;
+      color: #fff;
+    }
+    .task-item.completed .checkbox {
+      background: #667eea;
+      border-color: #667eea;
+    }
+    .task-item .checkbox:hover {
+      border-color: #667eea;
+    }
+    .task-text {
+      flex: 1;
+      font-size: 15px;
+      color: #1f2937;
+      word-break: break-word;
+    }
+    .task-item .delete-btn {
+      background: none;
+      border: none;
+      color: #9ca3af;
+      font-size: 18px;
+      cursor: pointer;
+      padding: 4px 6px;
+      border-radius: 8px;
+      transition: 0.2s;
+      line-height: 1;
+    }
+    .task-item .delete-btn:hover {
+      background: #fee2e2;
+      color: #ef4444;
+    }
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #9ca3af;
+    }
+    .empty-state .emoji {
+      font-size: 48px;
+      margin-bottom: 12px;
+    }
+    .empty-state p {
+      font-size: 15px;
+    }
+    .clear-btn {
+      display: block;
+      width: 100%;
+      margin-top: 16px;
+      padding: 10px;
+      background: #fef2f2;
+      color: #ef4444;
+      border: 2px solid #fca5a5;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .clear-btn:hover {
+      background: #fee2e2;
+      border-color: #ef4444;
+    }
+    .clear-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    @media (max-width: 500px) {
+      .container { padding: 24px 16px; }
+      h1 { font-size: 24px; }
+      .input-area { flex-direction: column; }
+      .input-area button { justify-content: center; }
+      .filter-bar button { min-width: 60px; font-size: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>
+      📋 To-Do List
+      <span id="taskCount">0</span>
+    </h1>
+    <div class="subtitle">Stay organized, get things done ✨</div>
+
+    <div class="input-area">
+      <input type="text" id="taskInput" placeholder="Add a new task..." autofocus />
+      <button id="addBtn">➕ Add</button>
+    </div>
+
+    <div class="filter-bar">
+      <button data-filter="all" class="active">All</button>
+      <button data-filter="active">Active</button>
+      <button data-filter="completed">Completed</button>
+    </div>
+
+    <div class="task-stats">
+      <span>Total: <strong id="totalCount">0</strong></span>
+      <span>Done: <strong id="doneCount">0</strong></span>
+    </div>
+
+    <ul class="task-list" id="taskList"></ul>
+
+    <button class="clear-btn" id="clearBtn" disabled>🗑️ Clear completed</button>
+  </div>
+
+  <script>
+    (function() {
+      // --- Supabase setup ---
+      const { createClient } = supabase;
+      const db = createClient('https://asxcpepirqzwhdxzjyoi.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFzeGNwZXBpcnF6d2hkeHpqeW9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5NjExNjQsImV4cCI6MjA5NTUzNzE2NH0.6-OFnFQzHz0VMZwAEEfv9ZZTnPXlxf4W0l5vbJ8Fm2E');
+
+      // --- state ---
+      let tasks = [];
+      let filter = 'all'; // 'all' | 'active' | 'completed'
+
+      // --- DOM refs ---
+      const taskInput = document.getElementById('taskInput');
+      const addBtn = document.getElementById('addBtn');
+      const taskList = document.getElementById('taskList');
+      const taskCount = document.getElementById('taskCount');
+      const totalCount = document.getElementById('totalCount');
+      const doneCount = document.getElementById('doneCount');
+      const clearBtn = document.getElementById('clearBtn');
+      const filterBtns = document.querySelectorAll('.filter-bar button');
+
+      // --- helpers ---
+      async function loadTasks() {
+        const { data, error } = await db.from('tasks').select('*').order('id', { ascending: true });
+        if (error) {
+          console.error('Error loading tasks:', error);
+          tasks = [];
+        } else {
+          tasks = data || [];
+        }
+        render();
+      }
+
+      async function saveTask(task) {
+        const { data, error } = await db.from('tasks').insert([task]).select();
+        if (error) {
+          console.error('Error saving task:', error);
+          return null;
+        }
+        return data ? data[0] : null;
+      }
+
+      async function updateTask(id, updates) {
+        const { data, error } = await db.from('tasks').update(updates).eq('id', id).select();
+        if (error) {
+          console.error('Error updating task:', error);
+          return null;
+        }
+        return data ? data[0] : null;
+      }
+
+      async function deleteTaskFromDB(id) {
+        const { error } = await db.from('tasks').delete().eq('id', id);
+        if (error) {
+          console.error('Error deleting task:', error);
+          return false;
+        }
+        return true;
+      }
+
+      function getFilteredTasks() {
+        if (filter === 'active') return tasks.filter(t => !t.completed);
+        if (filter === 'completed') return tasks.filter(t => t.completed);
+        return tasks;
+      }
+
+      function render() {
+        const filtered = getFilteredTasks();
+        const total = tasks.length;
+        const done = tasks.filter(t => t.completed).length;
+
+        // update counts
+        taskCount.textContent = total;
+        totalCount.textContent = total;
+        doneCount.textContent = done;
+        clearBtn.disabled = done === 0;
+
+        // render list
+        if (filtered.length === 0) {
+          taskList.innerHTML = `
+            <li class="empty-state">
+              <div class="emoji">📭</div>
+              <p>${filter === 'all' ? 'No tasks yet. Add one above!' : filter === 'active' ? 'No active tasks. 🎉' : 'No completed tasks yet.'}</p>
+            </li>
+          `;
+          return;
+        }
+
+        let html = '';
+        for (const task of filtered) {
+          html += `
+            <li class="task-item ${task.completed ? 'completed' : ''}" data-id="${task.id}">
+              <div class="checkbox" data-toggle>${task.completed ? '✓' : ''}</div>
+              <span class="task-text">${escapeHtml(task.text)}</span>
+              <button class="delete-btn" data-delete title="Delete task">✕</button>
+            </li>
+          `;
+        }
+        taskList.innerHTML = html;
+      }
+
+      // simple escape to prevent XSS
+      function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      }
+
+      // --- actions ---
+      async function addTask() {
+        const text = taskInput.value.trim();
+        if (!text) {
+          taskInput.focus();
+          return;
+        }
+        const newTask = {
+          text: text,
+          completed: false,
+        };
+        const savedTask = await saveTask(newTask);
+        if (savedTask) {
+          tasks.push(savedTask);
+          render();
+          taskInput.value = '';
+          taskInput.focus();
+          // scroll to bottom
+          taskList.scrollTop = taskList.scrollHeight;
+        }
+      }
+
+      async function toggleTask(id) {
+        const task = tasks.find(t => t.id === id);
+        if (task) {
+          const updatedTask = await updateTask(id, { completed: !task.completed });
+          if (updatedTask) {
+            task.completed = updatedTask.completed;
+            render();
+          }
+        }
+      }
+
+      async function deleteTask(id) {
+        const success = await deleteTaskFromDB(id);
+        if (success) {
+          tasks = tasks.filter(t => t.id !== id);
+          render();
+        }
+      }
+
+      async function clearCompleted() {
+        const completedIds = tasks.filter(t => t.completed).map(t => t.id);
+        if (completedIds.length === 0) return;
+        // delete all completed tasks in batch (Supabase supports IN)
+        const { error } = await db.from('tasks').delete().in('id', completedIds);
+        if (error) {
+          console.error('Error clearing completed tasks:', error);
+          return;
+        }
+        tasks = tasks.filter(t => !t.completed);
+        render();
+      }
+
+      function setFilter(newFilter) {
+        filter = newFilter;
+        filterBtns.forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.filter === filter);
+        });
+        render();
+      }
+
+      // --- event listeners ---
+      addBtn.addEventListener('click', addTask);
+      taskInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') addTask();
+      });
+
+      // event delegation for task list
+      taskList.addEventListener('click', (e) => {
+        const li = e.target.closest('.task-item');
+        if (!li) return;
+        const id = Number(li.dataset.id);
+
+        if (e.target.closest('[data-toggle]')) {
+          toggleTask(id);
+        } else if (e.target.closest('[data-delete]')) {
+          deleteTask(id);
+        }
+      });
+
+      clearBtn.addEventListener('click', clearCompleted);
+
+      filterBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          setFilter(btn.dataset.filter);
+        });
+      });
+
+      // --- init ---
+      loadTasks().then(() => {
+        taskInput.focus();
+      }).catch(err => {
+        console.error('Initial load failed:', err);
+        // fallback to empty state
+        tasks = [];
+        render();
+      });
+    })();
+  </script>
+</body>
+</html>
